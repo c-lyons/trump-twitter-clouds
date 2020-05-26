@@ -83,11 +83,11 @@ def get_upper_words(list_of_words):
         else:
             pass
 
-def trump_presidential_tweets(tweets):
+def tweets_since(tweets, since):
     """Filters tweets to date since trump inaugaration and extracts capital words and if tweet contains endorsement."""
     tweet_temp = tweets.copy()
 
-    tweet_temp = tweet_temp[(tweet_temp.created_at>"2017-01-20")] # trump inaug. date
+    tweet_temp = tweet_temp[(tweet_temp.created_at>since)] # trump inaug. date
     tweet_temp['capital_words'] = tweet_temp.words.apply(get_upper_words)  # gettng capitalised words from tweets
     tweet_temp['has_endors'] = tweet_temp.text.apply(lambda x: 1 if 'endorsement' in x else 0)  # trumps endorsement tweets flag
 
@@ -126,7 +126,16 @@ def remove_dropwords_caps(tweets):
 
     return cap_clean
 
-def main():
+def main(keyWord=None, nWords=300, since='2017-01-20'):
+    """Returns world clouds of Trump tweets. User can give option keyWord to filter by tweets containing given word. Also can provide nWords which defined max number of words in word cloud. User can also provide 'since' variable to change start date.
+
+    Note: Currently latest tweets are limited to May 2020. 
+
+    Keyword Arguments:
+        keyWord {str} -- (Optional) Word to filter tweets by. Will select tweets only containing given word. (default: {None})
+        nWords {int} -- max words in word cloud (default: {300})
+        since {str} -- Start date for filtering tweets. (default: {'2017-01-20'})
+    """
     try:
         tweets = pd.read_csv('project-data/all_tweets.csv')
         tweets.dropna(inplace=True)
@@ -135,7 +144,7 @@ def main():
 
     tweets = tweets_clean(tweets)
     tweets = tweets_prep(tweets)
-    tweets = trump_presidential_tweets(tweets)
+    tweets = tweets_since(tweets, since)
     tweets.to_csv('project-data/cleaned_tweets.csv', header=True)
 
     cleaned_words_list = remove_dropwords(tweets)  # getting cleaned words list
@@ -148,7 +157,7 @@ def main():
     with open("project-data/cleaned_capital_words.json", 'w') as f:
         json.dump(cleaned_caps_list, f, indent=2)
 
-    cp.main()
+    cp.main(keyWord, nWords, since)
 
 if __name__ == "__main__":
     main()
