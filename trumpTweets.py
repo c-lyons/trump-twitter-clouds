@@ -4,6 +4,7 @@ from datetime import datetime
 import json
 import re
 import cloudPlotter as cp
+import fire
 
 # importing stopwords
 import nltk
@@ -126,15 +127,30 @@ def remove_dropwords_caps(tweets):
 
     return cap_clean
 
-def main(keyWord=None, nWords=300, since='2017-01-20'):
+def get_key_words(tweets, keyWord):
+    """Gets tweets containing user specified word. Skips filtering if no word given."""
+    if keyWord == None:
+
+        return tweets
+
+    else:
+
+        tweets['text'] = tweets.text.map(lambda x: [x if keyWord.lower() in x.lower().split() else 'NaN'])
+        tweets['text'] = tweets.text.map(lambda x: x[0])  # unpacking list
+
+        return tweets[tweets['text']!='NaN']
+
+def main(keyWord=None, nWords=300, since='2017-01-20', getCaps=False):
     """Returns world clouds of Trump tweets. User can give option keyWord to filter by tweets containing given word. Also can provide nWords which defined max number of words in word cloud. User can also provide 'since' variable to change start date.
 
-    Note: Currently latest tweets are limited to May 2020. 
+    Note: Currently latest tweets are limited to May 2020.
 
     Keyword Arguments:
         keyWord {str} -- (Optional) Word to filter tweets by. Will select tweets only containing given word. (default: {None})
         nWords {int} -- max words in word cloud (default: {300})
         since {str} -- Start date for filtering tweets. (default: {'2017-01-20'})
+        getCaps {bool} -- Decides whether to print clouds based on words from full tweets or to limit word cloud words to only the words CAPITALIZED RANDOMLY in Trump's tweets.
+
     """
     try:
         tweets = pd.read_csv('project-data/all_tweets.csv')
@@ -142,10 +158,12 @@ def main(keyWord=None, nWords=300, since='2017-01-20'):
     except FileNotFoundError:
         print('File not found. Please check project-data folder.')
 
+    # running cleaning/ data prep functions
     tweets = tweets_clean(tweets)
     tweets = tweets_prep(tweets)
     tweets = tweets_since(tweets, since)
-    tweets.to_csv('project-data/cleaned_tweets.csv', header=True)
+    tweets = get_key_words(tweets, keyWord)  # extracting keyWord tweets
+    tweets.to_csv('project-data/cleaned_tweets.csv', header=True)  # printing csv.
 
     cleaned_words_list = remove_dropwords(tweets)  # getting cleaned words list
     cleaned_caps_list = remove_dropwords_caps(tweets)  # getting list of capital words
@@ -157,7 +175,7 @@ def main(keyWord=None, nWords=300, since='2017-01-20'):
     with open("project-data/cleaned_capital_words.json", 'w') as f:
         json.dump(cleaned_caps_list, f, indent=2)
 
-    cp.main(keyWord, nWords, since)
+    cp.main(keyWord, nWords, since, getCaps)
 
 if __name__ == "__main__":
-    main()
+    fire.Fire(main)
